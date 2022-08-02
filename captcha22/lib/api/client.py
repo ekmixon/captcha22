@@ -17,11 +17,10 @@ class Client:
         self.serverURL = f"{server_url}:{server_port}{server_path}"
 
     def build_token_headers(self):
-        headers = {'X-Api-Key': self.token}
-        return headers
+        return {'X-Api-Key': self.token}
 
     def get_token(self):
-        url = self.serverURL + "generate_token"
+        url = f"{self.serverURL}generate_token"
         r = requests.get(url, auth=requests.auth.HTTPBasicAuth(
             self.username, self.password))
         load = json.loads(r.content)
@@ -30,7 +29,7 @@ class Client:
             self.token = load['token']
 
     def upload_captchas(self, clientName, dataFile):
-        url = self.serverURL + "captchas"
+        url = f"{self.serverURL}captchas"
         datas = {'title': clientName}
         files = [
             ('document', ("hello", open(dataFile, 'rb'), 'application/octet')),
@@ -41,7 +40,7 @@ class Client:
         self.logger.info(json.dumps(json_data, indent=2))
 
     def get_captcha_details(self, captchaID):
-        url = self.serverURL + "captchas/" + str(captchaID)
+        url = f"{self.serverURL}captchas/{str(captchaID)}"
         r = requests.get(url, headers=self.build_token_headers())
         json_data = json.loads(r.content)
         self.logger.info(json.dumps(json_data, indent=2))
@@ -50,18 +49,17 @@ class Client:
 
     def get_captcha_token(self, captchaID):
         load = json.loads(self.get_captcha_details(captchaID))
-        token = load['captcha']['dataToken']
-        return token
+        return load['captcha']['dataToken']
 
     def get_all_models(self):
-        url = self.serverURL + "captchas"
+        url = f"{self.serverURL}captchas"
         r = requests.get(url, headers=self.build_token_headers())
         json_data = json.loads(r.content)
         self.logger.info(json.dumps(json_data, indent=2))
 
     def get_exported_model(self, captchaID):
         token = self.get_captcha_token(captchaID)
-        url = self.serverURL + "export_model/" + token
+        url = f"{self.serverURL}export_model/{token}"
         r = requests.get(url, headers=self.build_token_headers())
 
         newFileByteArray = bytearray(r.content)
@@ -72,7 +70,7 @@ class Client:
 
     def update_model_active(self, captchaID, answer):
         token = self.get_captcha_token(captchaID)
-        url = self.serverURL + "activate_model"
+        url = f"{self.serverURL}activate_model"
         datas = {
             'active': answer,
             'dataToken': token
@@ -89,21 +87,21 @@ class Client:
 
     def get_training_update(self, captchaID):
         token = self.get_captcha_token(captchaID)
-        url = self.serverURL + "training_update/" + token
+        url = f"{self.serverURL}training_update/{token}"
         r = requests.get(url, headers=self.build_token_headers())
         json_data = json.loads(r.content)
         self.logger.info(json.dumps(json_data, indent=2))
 
     def get_results(self, captchaID):
         token = self.get_captcha_token(captchaID)
-        url = self.serverURL + "results/" + token
+        url = f"{self.serverURL}results/{token}"
         r = requests.get(url, headers=self.build_token_headers())
         json_data = json.loads(r.content)
         self.logger.info(json.dumps(json_data, indent=2))
 
     def solve_captcha(self, captchaID):
         token = self.get_captcha_token(captchaID)
-        url = self.serverURL + "solve_captcha"
+        url = f"{self.serverURL}solve_captcha"
 
         import base64
 
@@ -131,12 +129,11 @@ class Menu:
 
     def auth_to_server(self):
         self.logger.info("[+] Authenticating to Captcha22")
-        count = 0
-        while(count < 3):
-            if self.username == None:
+        for _ in range(3):
+            if self.username is None:
                 self.username = str(
                     input("Please provide your username: "))
-            if self.password == None:
+            if self.password is None:
                 self.password = getpass.getpass(
                     'Please provide your password: ')
             self.new_Client = Client(self.server_url, self.server_path, self.server_port, self.username, self.password)
@@ -154,8 +151,6 @@ class Menu:
                 self.logger.info("[x] Invalid credentials, please try again")
                 self.username = None
                 self.password = None
-            count += 1
-
         self.logger.info("[x] Attempts failed, please try again")
         exit()
 
@@ -183,7 +178,7 @@ class Menu:
             return
 
         self.logger.info("[+] CAPTCHA22 server interface online. What would you like to do?")
-        while(True):
+        while True:
             self.logger.info("[1] Get details on all CAPTCHA models")
             self.logger.info("[2] Get details on a CAPTCHA model")
             self.logger.info("[3] Get the progression of CAPTCHA model training")
@@ -210,13 +205,13 @@ class Menu:
                 captchaID = str(input("Please provide the captchaID: "))
                 self.new_Client.get_results(captchaID)
                 continue
-            if (answer == "5"):
+            if answer == "5":
                 captchaID = str(input("Please provide the captchaID: "))
                 self.new_Client.get_exported_model(captchaID)
-            if (answer == "6"):
+            elif answer == "6":
                 captchaID = str(input("Please provide the captchaID: "))
                 status_ask = str(input("Activate? [Y/N]"))
-                if (status_ask == "Y" or status_ask == "y"):
+                if status_ask in {"Y", "y"}:
                     self.new_Client.update_model_active(captchaID, True)
                 else:
                     self.new_Client.update_model_active(captchaID, False)

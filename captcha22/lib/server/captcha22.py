@@ -32,7 +32,7 @@ class captcha:
         self.modelOn = False
 
         try:
-            f = open(self.path + 'model.txt')
+            f = open(f'{self.path}model.txt')
             lines = f.readlines()
             self.hasTrained = ast.literal_eval(lines[0].replace("\n", ""))
             self.busyTraining = ast.literal_eval(lines[1].replace("\n", ""))
@@ -54,16 +54,15 @@ class captcha:
         except:
             self.get_image_size()
             self.update_file()
-            pass
 
     def get_image_size(self):
-        images = glob.glob(self.path + "data/*.png")
+        images = glob.glob(f"{self.path}data/*.png")
         img = cv2.imread(images[0])
         self.image_width = img.shape[1]
         self.image_height = img.shape[0]
 
     def update_from_file(self):
-        f = open(self.path + 'model.txt')
+        f = open(f'{self.path}model.txt')
         lines = f.readlines()
         self.hasTrained = ast.literal_eval(lines[0].replace("\n", ""))
         self.busyTraining = ast.literal_eval(lines[1].replace("\n", ""))
@@ -83,7 +82,7 @@ class captcha:
         self.modelOn = ast.literal_eval(lines[14].replace("\n", ""))
 
     def update_file(self):
-        f = open(self.path + 'model.txt', 'w')
+        f = open(f'{self.path}model.txt', 'w')
         f.write(str(self.hasTrained) + "\n")
         f.write(str(self.busyTraining) + "\n")
         f.write(str(self.hasModel) + "\n")
@@ -102,16 +101,66 @@ class captcha:
 
     def export_model(self):
         self.logger.info("Going to extract the model")
-        os.system("(cd " + self.path + " && aocr export --max-height " + str(
-            self.image_height) + " --max-width " + str(self.image_width) + " exported-model)")
+        os.system(
+            (
+                (
+                    f"(cd {self.path} && aocr export --max-height {str(self.image_height)}"
+                    + " --max-width "
+                )
+                + str(self.image_width)
+                + " exported-model)"
+            )
+        )
+
         time.sleep(5)
 
     def run_model(self):
         self.logger.info("Starting serving model")
-        self.logger.info("nohup tensorflow_model_server --port=" + str(self.modelPorts) + " --rest_api_port=" + str(self.modelPorts + 1) +
-              " --model_name=" + self.modelName + " --model_base_path=" + os.getcwd() + "/" + self.modelPath + " 2&> /dev/null &")
-        os.system("nohup tensorflow_model_server --port=" + str(self.modelPorts) + " --rest_api_port=" + str(self.modelPorts + 1) +
-                  " --model_name=" + self.modelName + " --model_base_path=" + os.getcwd() + "/" + self.modelPath + " 2&> /dev/null &")
+        self.logger.info(
+            (
+                (
+                    (
+                        (
+                            (
+                                (
+                                    f"nohup tensorflow_model_server --port={str(self.modelPorts)} --rest_api_port={str(self.modelPorts + 1)}"
+                                    + " --model_name="
+                                )
+                                + self.modelName
+                            )
+                            + " --model_base_path="
+                        )
+                        + os.getcwd()
+                        + "/"
+                    )
+                    + self.modelPath
+                )
+                + " 2&> /dev/null &"
+            )
+        )
+
+        os.system(
+            (
+                (
+                    (
+                        (
+                            (
+                                (
+                                    f"nohup tensorflow_model_server --port={str(self.modelPorts)} --rest_api_port={str(self.modelPorts + 1)}"
+                                    + " --model_name="
+                                )
+                                + self.modelName
+                            )
+                            + " --model_base_path="
+                        )
+                        + os.getcwd()
+                        + "/"
+                    )
+                    + self.modelPath
+                )
+                + " 2&> /dev/null &"
+            )
+        )
 
     def stop_model(self):
         self.logger.info("Stopping serving model")
@@ -127,7 +176,7 @@ class captcha:
     def test_training_level(self):
         self.logger.info("Testing training level")
         # Go read the aocr log
-        f = open(self.path + "aocr.log")
+        f = open(f"{self.path}aocr.log")
         lines = f.readlines()
         lastUpdate = ""
         for line in lines:
@@ -140,14 +189,12 @@ class captcha:
         # We need to combine two values, the current step and the last saved step. This gives us the total step.
         current_checkpoint = 0
         try:
-            f = open(self.path + "/checkpoints/checkpoint")
+            f = open(f"{self.path}/checkpoints/checkpoint")
             lines = f.readlines()
             current_checkpoint = ast.literal_eval(
                 lines[0].split('ckpt-')[1].split("\"")[0])
         except:
             self.logger.info("No current checkpoint")
-            pass
-
         while (step > 100):
             step -= 100
 
@@ -158,10 +205,10 @@ class captcha:
         self.checkpoint = current_checkpoint
 
         self.logger.info("Values are: ")
-        self.logger.info("Step: {}".format(self.last_step))
-        self.logger.info("Loss: {}".format(self.loss))
-        self.logger.info("Perplexity: {}".format(self.perplexity))
-        self.logger.info("Checkpoint: {}".format(self.checkpoint))
+        self.logger.info(f"Step: {self.last_step}")
+        self.logger.info(f"Loss: {self.loss}")
+        self.logger.info(f"Perplexity: {self.perplexity}")
+        self.logger.info(f"Checkpoint: {self.checkpoint}")
 
         self.update_file()
 
@@ -170,10 +217,7 @@ class captcha:
             # Time to end
             return True
 
-        if self.loss < loss and self.perplexity < perplex:
-            return True
-
-        return False
+        return self.loss < loss and self.perplexity < perplex
 
     def stop_training(self):
         # Sometime the kill is not respected. Do this three times to ensure it is killed
@@ -193,18 +237,44 @@ class captcha:
 
     def test_training(self):
         self.logger.info("Testing")
-        self.logger.info("(cd " + self.path + " && aocr test --max-height " + str(self.image_height) +
-              " --max-width " + str(self.image_width) + " labels/testing.tfrecords 2>&1 | tee test.txt)")
-        os.system("(cd " + self.path + " && aocr test --max-height " + str(self.image_height) +
-                  " --max-width " + str(self.image_width) + " labels/testing.tfrecords 2>&1 | tee test.txt)")
+        self.logger.info(
+            (
+                (
+                    f"(cd {self.path} && aocr test --max-height {str(self.image_height)}"
+                    + " --max-width "
+                )
+                + str(self.image_width)
+                + " labels/testing.tfrecords 2>&1 | tee test.txt)"
+            )
+        )
+
+        os.system(
+            (
+                (
+                    f"(cd {self.path} && aocr test --max-height {str(self.image_height)}"
+                    + " --max-width "
+                )
+                + str(self.image_width)
+                + " labels/testing.tfrecords 2>&1 | tee test.txt)"
+            )
+        )
+
         time.sleep(30)
 
     def start_training(self):
         self.logger.info("Starting training")
         self.busyTraining = True
         self.update_file()
-        os.system("(cd " + self.path + " && nohup aocr train --max-height " + str(self.image_height) +
-                  " --max-width " + str(self.image_width) + " labels/training.tfrecords &>/dev/null &)")
+        os.system(
+            (
+                (
+                    f"(cd {self.path} && nohup aocr train --max-height {str(self.image_height)}"
+                    + " --max-width "
+                )
+                + str(self.image_width)
+                + " labels/training.tfrecords &>/dev/null &)"
+            )
+        )
 
 
 class Captcha22:
@@ -259,22 +329,80 @@ class Captcha22:
 
 
         # Creating folder structure data
-        os.system('mkdir ' + self.busy_URL + "/" + names[0])
-        os.system('mkdir ' + self.busy_URL + "/" + names[0] + "/" + names[1])
-        os.system('mkdir ' + self.busy_URL + "/" +
-                  names[0] + "/" + names[1] + "/" + names[2])
-        os.system('mkdir ' + self.busy_URL + "/" +
-                  names[0] + "/" + names[1] + "/" + names[2] + "/" + "labels")
+        os.system(f'mkdir {self.busy_URL}/{names[0]}')
+        os.system(f'mkdir {self.busy_URL}/{names[0]}/{names[1]}')
+        os.system(
+            (
+                ((((f'mkdir {self.busy_URL}/' + names[0]) + "/") + names[1]) + "/")
+                + names[2]
+            )
+        )
+
+        os.system(
+            (
+                (
+                    (
+                        (
+                            (
+                                ((f'mkdir {self.busy_URL}/' + names[0]) + "/")
+                                + names[1]
+                            )
+                            + "/"
+                        )
+                        + names[2]
+                    )
+                    + "/"
+                )
+                + "labels"
+            )
+        )
+
 
         # Creating folder structure for model
-        os.system('mkdir ' + self.model_URL + "/" + names[0])
-        os.system('mkdir ' + self.model_URL + "/" + names[0] + "/" + names[1])
-        os.system('mkdir ' + self.model_URL + "/" +
-                  names[0] + "/" + names[1] + "/" + names[2])
-        os.system('mkdir ' + self.model_URL + "/" +
-                  names[0] + "/" + names[1] + "/" + names[2] + "/exported-model")
-        os.system('mkdir ' + self.model_URL + "/" +
-                  names[0] + "/" + names[1] + "/" + names[2] + "/exported-model/1")
+        os.system(f'mkdir {self.model_URL}/{names[0]}')
+        os.system(f'mkdir {self.model_URL}/{names[0]}/{names[1]}')
+        os.system(
+            (
+                (
+                    (((f'mkdir {self.model_URL}/' + names[0]) + "/") + names[1])
+                    + "/"
+                )
+                + names[2]
+            )
+        )
+
+        os.system(
+            (
+                (
+                    (
+                        (
+                            ((f'mkdir {self.model_URL}/' + names[0]) + "/")
+                            + names[1]
+                        )
+                        + "/"
+                    )
+                    + names[2]
+                )
+                + "/exported-model"
+            )
+        )
+
+        os.system(
+            (
+                (
+                    (
+                        (
+                            ((f'mkdir {self.model_URL}/' + names[0]) + "/")
+                            + names[1]
+                        )
+                        + "/"
+                    )
+                    + names[2]
+                )
+                + "/exported-model/1"
+            )
+        )
+
 
         # Copy the file to the directory
         os.system("cp " + file.replace("\n", "") + " " + self.busy_URL +
@@ -282,18 +410,69 @@ class Captcha22:
         os.system("rm " + file.replace("\n", ""))
 
         # Unzip the file
-        os.system("unzip " + self.busy_URL + "/" + names[0] + "/" + names[1] + "/" + names[2] + "/" + file.split(
-            "/")[-1] + " -d " + self.busy_URL + "/" + names[0] + "/" + names[1] + "/" + names[2] + "/")
-        os.system("rm " + self.busy_URL + "/" +
-                  names[0] + "/" + names[1] + "/" + names[2] + "/" + file.split("/")[-1])
+        os.system(
+            (
+                (
+                    (
+                        (
+                            (
+                                (
+                                    (
+                                        (
+                                            (
+                                                (
+                                                    f"unzip {self.busy_URL}/{names[0]}/{names[1]}/{names[2]}/"
+                                                    + file.split("/")[-1]
+                                                )
+                                                + " -d "
+                                            )
+                                            + self.busy_URL
+                                        )
+                                        + "/"
+                                    )
+                                    + names[0]
+                                )
+                                + "/"
+                            )
+                            + names[1]
+                        )
+                        + "/"
+                    )
+                    + names[2]
+                )
+                + "/"
+            )
+        )
+
+        os.system(
+            (
+                (
+                    (
+                        (
+                            (
+                                ((f"rm {self.busy_URL}/" + names[0]) + "/")
+                                + names[1]
+                            )
+                            + "/"
+                        )
+                        + names[2]
+                    )
+                    + "/"
+                )
+                + file.split("/")[-1]
+            )
+        )
 
     def export_model(self, model):
         paths = model.path.split("/")
-        shortPath = paths[-4] + "/" + paths[-3] + "/" + paths[-2]
+        shortPath = f"{paths[-4]}/{paths[-3]}/{paths[-2]}"
         # Ask model to create the model
         model.export_model()
         # Copy the model to the correct path for safekeeping
-        os.system("cp -r " + model.path + "exported-model/* " + self.model_URL + "/" + shortPath + "/exported-model/1/")
+        os.system(
+            f"cp -r {model.path}exported-model/* {self.model_URL}/{shortPath}/exported-model/1/"
+        )
+
         self.logger.info("Model copied")
 
     def run_model(self, model):
@@ -310,16 +489,22 @@ class Captcha22:
         names = file.split(".")[0].split("/")[-1].split("_")
         if (file[0] == '.'):
             names = file.split(".")[1].split("/")[-1].split("_")
-        read_dir = self.busy_URL + "/" + \
-            names[0] + "/" + names[1] + "/" + names[2] + "/data/"
-        write_dir = self.busy_URL + "/" + \
-            names[0] + "/" + names[1] + "/" + names[2] + "/labels/"
+        read_dir = (
+            ((((f"{self.busy_URL}/" + names[0]) + "/") + names[1]) + "/")
+            + names[2]
+        ) + "/data/"
+
+        write_dir = (
+            ((((f"{self.busy_URL}/" + names[0]) + "/") + names[1]) + "/")
+            + names[2]
+        ) + "/labels/"
+
 
         self.logger.info("Directories is:")
         self.logger.info(read_dir)
         self.logger.info(write_dir)
 
-        onlyfiles = glob.glob(read_dir + "*.png")
+        onlyfiles = glob.glob(f"{read_dir}*.png")
 
         count = len(onlyfiles)
         train_count = int(count * (self.data_split / 100.0))
@@ -327,30 +512,67 @@ class Captcha22:
 
         # Create train labels
         count = 0
-        labels = open(write_dir + "training_labels.txt", "w")
-        while (count < train_count):
-            file = onlyfiles[count]
-            answer = file.replace('.png', '').split('/')[-1].split('_')[-1]
+        with open(f"{write_dir}training_labels.txt", "w") as labels:
+            while (count < train_count):
+                file = onlyfiles[count]
+                answer = file.replace('.png', '').split('/')[-1].split('_')[-1]
 
-            labels.write(self.busy_URL + "/" + names[0] + "/" + names[1] + "/" +
-                         names[2] + "/data/" + file.split('/')[-1] + ' ' + answer + '\n')
+                labels.write(
+                    (
+                        (
+                            (
+                                (
+                                    (
+                                        (
+                                            f"{self.busy_URL}/{names[0]}/{names[1]}/"
+                                            + names[2]
+                                        )
+                                        + "/data/"
+                                    )
+                                    + file.split('/')[-1]
+                                )
+                                + ' '
+                            )
+                            + answer
+                        )
+                        + '\n'
+                    )
+                )
 
-            count += 1
 
-        labels.close()
+                count += 1
 
         # Create test labels
         count = 0
-        labels = open(write_dir + "testing_labels.txt", "w")
-        while (count < test_count):
-            file = onlyfiles[train_count + count]
+        with open(f"{write_dir}testing_labels.txt", "w") as labels:
+            while (count < test_count):
+                file = onlyfiles[train_count + count]
 
-            answer = file.replace('.png', '').split('/')[-1].split('_')[-1]
-            labels.write(self.busy_URL + "/" + names[0] + "/" + names[1] + "/" +
-                         names[2] + "/data/" + file.split('/')[-1] + ' ' + answer + '\n')
+                answer = file.replace('.png', '').split('/')[-1].split('_')[-1]
+                labels.write(
+                    (
+                        (
+                            (
+                                (
+                                    (
+                                        (
+                                            f"{self.busy_URL}/{names[0]}/{names[1]}/"
+                                            + names[2]
+                                        )
+                                        + "/data/"
+                                    )
+                                    + file.split('/')[-1]
+                                )
+                                + ' '
+                            )
+                            + answer
+                        )
+                        + '\n'
+                    )
+                )
 
-            count += 1
-        labels.close()
+
+                count += 1
 
     def generate_aocr_records(self, file):
         names = file.split(".")[0].split("/")[-1].split("_")
@@ -358,11 +580,63 @@ class Captcha22:
             names = file.split(".")[1].split("/")[-1].split("_")
 
         # Creating folder structure data
-        os.system('aocr dataset ' + self.busy_URL + "/" + names[0] + "/" + names[1] + "/" + names[2] + "/labels/training_labels.txt " +
-                  self.busy_URL + "/" + names[0] + "/" + names[1] + "/" + names[2] + "/labels/training.tfrecords")
+        os.system(
+            (
+                (
+                    (
+                        (
+                            (
+                                (
+                                    (
+                                        (
+                                            f'aocr dataset {self.busy_URL}/{names[0]}/{names[1]}/{names[2]}/labels/training_labels.txt '
+                                            + self.busy_URL
+                                        )
+                                        + "/"
+                                    )
+                                    + names[0]
+                                )
+                                + "/"
+                            )
+                            + names[1]
+                        )
+                        + "/"
+                    )
+                    + names[2]
+                )
+                + "/labels/training.tfrecords"
+            )
+        )
+
         time.sleep(1)
-        os.system('aocr dataset ' + self.busy_URL + "/" + names[0] + "/" + names[1] + "/" + names[2] + "/labels/testing_labels.txt " +
-                  self.busy_URL + "/" + names[0] + "/" + names[1] + "/" + names[2] + "/labels/testing.tfrecords")
+        os.system(
+            (
+                (
+                    (
+                        (
+                            (
+                                (
+                                    (
+                                        (
+                                            f'aocr dataset {self.busy_URL}/{names[0]}/{names[1]}/{names[2]}/labels/testing_labels.txt '
+                                            + self.busy_URL
+                                        )
+                                        + "/"
+                                    )
+                                    + names[0]
+                                )
+                                + "/"
+                            )
+                            + names[1]
+                        )
+                        + "/"
+                    )
+                    + names[2]
+                )
+                + "/labels/testing.tfrecords"
+            )
+        )
+
         time.sleep(5)
 
     def create_model(self, file):
@@ -370,8 +644,10 @@ class Captcha22:
         names = file.split(".")[0].split("/")[-1].split("_")
         if (file[0] == '.'):
             names = file.split(".")[1].split("/")[-1].split("_")
-        path = self.busy_URL + "/" + names[0] + \
-            "/" + names[1] + "/" + names[2] + "/"
+        path = (
+            (((f"{self.busy_URL}/{names[0]}" + "/") + names[1]) + "/") + names[2]
+        ) + "/"
+
         model = captcha(path, self.logger)
 
         if model.model_trained():
@@ -392,7 +668,7 @@ class Captcha22:
     def check_files(self):
         self.logger.info("Checking if there are any new files")
 
-        files = glob.glob(self.unsorted_URL + "/*.zip")
+        files = glob.glob(f"{self.unsorted_URL}/*.zip")
 
         self.logger.info(files)
 
@@ -412,14 +688,12 @@ class Captcha22:
             self.logger.info("Done")
 
     def update_file(self):
-        f = open('models.txt', 'w')
-        for model in self.existing_models:
-            f.write(model.path + "\n")
+        with open('models.txt', 'w') as f:
+            for model in self.existing_models:
+                f.write(model.path + "\n")
 
-        for model in self.new_models:
-            f.write(model.path + "\n")
-
-        f.close()
+            for model in self.new_models:
+                f.write(model.path + "\n")
 
     def continue_training(self):
         if len(self.new_models) == 0:
@@ -448,9 +722,9 @@ class Captcha22:
                 model.hasModel = True
 
                 paths = model.path.split("/")
-                shortPath = paths[1] + "/" + paths[2] + "/" + paths[3]
-                model.modelName = paths[1] + "_" + paths[2]
-                model.modelPath = self.model_URL + "/" + shortPath + "/exported-model/"
+                shortPath = f"{paths[1]}/{paths[2]}/{paths[3]}"
+                model.modelName = f"{paths[1]}_{paths[2]}"
+                model.modelPath = f"{self.model_URL}/{shortPath}/exported-model/"
                 model.modelPorts = self.currentPort
                 self.currentPort + 2
                 model.update_file()
@@ -501,17 +775,15 @@ class Captcha22:
     def first_start(self):
         # Load all models
         #New loading method
-        first_layer = glob.glob(self.busy_URL + "/*")
+        first_layer = glob.glob(f"{self.busy_URL}/*")
         all_layers = []
         for user in first_layer:
-            second_layer = glob.glob(user + "/*")
+            second_layer = glob.glob(f"{user}/*")
             for client in second_layer:
-                third_layer = glob.glob(client + "/*")
-                for layer in third_layer:
-                    all_layers.append(layer)
-
+                third_layer = glob.glob(f"{client}/*")
+                all_layers.extend(iter(third_layer))
         for layer in all_layers:
-            self.reload_models(layer + "/")
+            self.reload_models(f"{layer}/")
         self.update_file()
 
     def main(self):

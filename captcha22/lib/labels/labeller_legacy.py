@@ -16,15 +16,15 @@ class CaptchaLabeller:
 
     def label_captchas(self):
         # Reading files
-        onlyfiles = glob.glob(self.read_dir + "*")
+        onlyfiles = glob.glob(f"{self.read_dir}*")
 
         # Iterate through files. All keys accepted. Press "-" to finish CAPTCHA label. Press "`" to exit program
         for o in onlyfiles:
-            if(o.find(self.image_type) != -1):
+            if (o.find(self.image_type) != -1):
                 img = cv2.imread(o)
                 self.logger.info("Showing image")
                 text = ''
-                while(1):
+                while 1:
                     cv2.imshow('captcha', img)
                     c = cv2.waitKey(0)
                     if c == ord('-'):
@@ -34,10 +34,10 @@ class CaptchaLabeller:
                         self.logger.info("Full exit")
                         exit()
                     else:
-                        self.logger.info('you pressed %s' % chr(c))
+                        self.logger.info(f'you pressed {chr(c)}')
                         text += chr(c)
 
-                self.logger.info("Final text is: " + text)
+                self.logger.info(f"Final text is: {text}")
 
                 # Save the image
                 cv2.imwrite(self.write_dir + text.upper() +

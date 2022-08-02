@@ -16,14 +16,11 @@ class LabelGenerator:
         # Reading files
         onlyfiles = glob.glob(f"{self.read_dir}*.{self.image_type}")
 
-        # Label file
-        labels = open(f"{self.write_dir}labels.txt", "w")
-
-        # Create the labels
-        for file in onlyfiles:
-            answer = file.replace("." + self.image_type, '').split('/')[-1].split('_')[-1]
-            labels.write(file.split('/')[-1] + ' ' + answer + '\n')
-        labels.close()
+        with open(f"{self.write_dir}labels.txt", "w") as labels:
+                # Create the labels
+            for file in onlyfiles:
+                answer = file.replace(f".{self.image_type}", '').split('/')[-1].split('_')[-1]
+                labels.write(file.split('/')[-1] + ' ' + answer + '\n')
 
     def main(self):
         self.create_labels()

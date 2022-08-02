@@ -26,13 +26,13 @@ class Cracker:
 
         self.useLocal = use_local
 
-        if (self.username == None and not self.useLocal):
+        if self.username is None and not self.useLocal:
             self.username = str(input("Please provide your username:"))
         else:
             self.username = username
 
 
-        if (self.password == None and not self.useLocal):
+        if self.password is None and not self.useLocal:
             self.password = getpass.getpass('Please provide your password:')
         else:
             self.password = password
@@ -48,7 +48,7 @@ class Cracker:
         self.useFilter = use_filter
         self.useLocal = use_local
 
-        self.serverURL = self.server_url + ":" + str(self.server_port) + self.server_path
+        self.serverURL = f"{self.server_url}:{str(self.server_port)}{self.server_path}"
 
         # Session management var
         self.isActive = False
@@ -63,8 +63,8 @@ class Cracker:
         except FileExistsError:
             pass
 
-        self.new_data_correct_path = output + "correct/"
-        self.new_data_incorrect_path = output + "incorrect/"
+        self.new_data_correct_path = f"{output}correct/"
+        self.new_data_incorrect_path = f"{output}incorrect/"
 
         try:
             os.mkdir(self.new_data_correct_path)
@@ -119,14 +119,14 @@ class Cracker:
         self.last_captcha_answer = ""
 
     def load_hashes(self):
-        imgFiles = glob.glob(self.orginal_data_path + "*")
+        imgFiles = glob.glob(f"{self.orginal_data_path}*")
 
         for imgFile in imgFiles:
             hashval = hashlib.md5(open(imgFile, 'rb').read()).hexdigest()
             self.hashes[hashval] = imgFile.replace(
                 self.orginal_data_path, '').replace(".png", '')
 
-        imgFile = glob.glob(self.new_data_correct_path + "*")
+        imgFile = glob.glob(f"{self.new_data_correct_path}*")
         for imgFile in imgFiles:
             hashval = hashlib.md5(open(imgFile, 'rb').read()).hexdigest()
             self.hashes[hashval] = imgFile.replace(
@@ -177,7 +177,7 @@ class Cracker:
             self.auth_to_api()
 
     def auth_to_api(self):
-        url = self.serverURL + "generate_token"
+        url = f"{self.serverURL}generate_token"
         r = requests.get(url, auth=requests.auth.HTTPBasicAuth(
             self.username, self.password))
         load = json.loads(r.content)
@@ -187,15 +187,14 @@ class Cracker:
         self.currentSessionTime = time.time()
 
     def build_token_headers(self):
-        headers = {'X-Api-Key': self.token}
-        return headers
+        return {'X-Api-Key': self.token}
 
     def solve_captcha(self, encoded_string):
         self.check_session_valid()
-        if (self.captchaID == None):
+        if self.captchaID is None:
             self.captchaID == str(input("Please enter the CAPTCHA ID: "))
         token = self.get_captcha_token(self.captchaID)
-        url = self.serverURL + "solve_captcha"
+        url = f"{self.serverURL}solve_captcha"
 
         datas = {
             'image': encoded_string.decode("utf-8"),
@@ -253,11 +252,10 @@ class Cracker:
 
     def get_captcha_token(self, captchaID):
         load = json.loads(self.get_captcha_details(captchaID))
-        token = load['captcha']['dataToken']
-        return token
+        return load['captcha']['dataToken']
 
     def get_captcha_details(self, captchaID):
-        url = self.serverURL + "captchas/" + str(captchaID)
+        url = f"{self.serverURL}captchas/{str(captchaID)}"
         r = requests.get(url, headers=self.build_token_headers())
         json_data = json.loads(r.content)
         self.logger.info(json.dumps(json_data, indent=2))

@@ -18,14 +18,13 @@ class Client:
         self.username = username
         self.password = password
         self.token = ''
-        self.serverURL = server_url + ":" + server_port + server_path
+        self.serverURL = f"{server_url}:{server_port}{server_path}"
 
     def build_token_headers(self):
-        headers = {'X-Api-Key': self.token}
-        return headers
+        return {'X-Api-Key': self.token}
 
     def get_token(self):
-        url = self.serverURL + "generate_token"
+        url = f"{self.serverURL}generate_token"
         r = requests.get(url, auth=requests.auth.HTTPBasicAuth(
             self.username, self.password))
         load = json.loads(r.content)
@@ -35,11 +34,10 @@ class Client:
 
     def get_captcha_token(self, captchaID):
         load = json.loads(self.get_captcha_details(captchaID))
-        token = load['captcha']['dataToken']
-        return token
+        return load['captcha']['dataToken']
 
     def get_captcha_details(self, captchaID):
-        url = self.serverURL + "captchas/" + str(captchaID)
+        url = f"{self.serverURL}captchas/{str(captchaID)}"
         r = requests.get(url, headers=self.build_token_headers())
         json_data = json.loads(r.content)
         self.logger.info(json.dumps(json_data, indent=2))
@@ -48,12 +46,12 @@ class Client:
 
     def solve_captcha(self, captchaID):
         token = self.get_captcha_token(captchaID)
-        url = self.serverURL + "solve_captcha"
+        url = f"{self.serverURL}solve_captcha"
 
         import base64
         # This solver expects the images in a directory. Alter or request this if you use something else.
         image_path = "images/"
-        images = glob.glob(image_path + "*.png")
+        images = glob.glob(f"{image_path}*.png")
 
         for image in images:
             with open(image, "rb") as image_file:
@@ -88,12 +86,11 @@ class Menu:
 
     def auth_to_server(self):
         self.logger.info("[+] Authenticating to Captcha22")
-        count = 0
-        while(count < 3):
-            if (self.username == None):
+        for _ in range(3):
+            if self.username is None:
                 self.username = str(
                     input("Please provide your username: "))
-            if (self.password == None):
+            if self.password is None:
                 self.password = getpass.getpass(
                     'Please provide your password: ')
             self.new_Client = Client(self.server_url, self.server_path, self.server_port, self.input_dir, self.image_type, self.captcha_id, self.username, self.password, self.logger)
@@ -111,8 +108,6 @@ class Menu:
                 self.username = None
                 self.password = None
                 self.logger.info("[x] Invalid credentials, please try again")
-            count += 1
-
         self.logger.info("[x] Attempts failed, please try again")
         exit()
 
@@ -123,7 +118,7 @@ class Menu:
         if (not self.authed):
             return
 
-        if (self.captcha_id == None):
+        if self.captcha_id is None:
             self.captcha_id = str(input("Please provide the CAPTCHA ID: "))
 
         self.new_Client.solve_captcha(self.captcha_id)

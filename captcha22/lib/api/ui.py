@@ -42,7 +42,10 @@ class UIServer:
     def buildImage(self):
         self.logger.info("Building UI docker image")
         f = BytesIO(self.dockerfile.encode('utf-8'))
-        response = [line for line in self.build_client.build(fileobj=f, rm=True, tag=self.container_name)]
+        response = list(
+            self.build_client.build(fileobj=f, rm=True, tag=self.container_name)
+        )
+
 
         for line in response:
             self.logger.info(line)

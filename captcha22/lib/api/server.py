@@ -67,10 +67,14 @@ class AuthSystem:
         username = request.authorization["username"]
         password = request.authorization["password"]
 
-        for user in self.source.users:
-            if user.username == username:
-                return check_password_hash(user.password, password)
-        return False
+        return next(
+            (
+                check_password_hash(user.password, password)
+                for user in self.source.users
+                if user.username == username
+            ),
+            False,
+        )
 
     def clean_tokens(self):
         max_time = 3600
@@ -81,7 +85,7 @@ class AuthSystem:
                 if (current_time - user.tokens[current_token][1]) > max_time:
                     tokens_delete.append(current_token)
 
-            for deletion in tokens_delete:
+            for _ in tokens_delete:
                 del user.tokens[current_token]
 
     def get_username(self):
@@ -116,8 +120,8 @@ class data_source:
 
         self.FILE_DROP_LOCATION = file_drop
         self.CAPTCHA_SERVER_LOCATION = server_location
-        self.MODELS = model_folder + "/"
-        self.WORK = work_folder + "/"
+        self.MODELS = f"{model_folder}/"
+        self.WORK = f"{work_folder}/"
 
         self.max_tokens = max_tokens
         self.users = []
@@ -127,12 +131,9 @@ class data_source:
             f = open(self.user_file)
             lines = f.readlines()
         except:
-            f = open(self.user_file, 'w')
-            f.write('admin' + ',' + generate_password_hash('admin') + "\n")
-            lines.append('admin' + ',' + generate_password_hash('admin') + "\n")
-            f.close()
-            pass
-
+            with open(self.user_file, 'w') as f:
+                f.write('admin' + ',' + generate_password_hash('admin') + "\n")
+                lines.append('admin' + ',' + generate_password_hash('admin') + "\n")
         for line in lines:
             userData = line.replace("\n", "").split(',')
 
@@ -183,7 +184,7 @@ class data_source:
             dirs = glob.glob(self.WORK + test_user.username + "/*")
             for dir in dirs:
                 client = dir.split('/')[-1]
-                model_numbers = glob.glob(dir + "/*")
+                model_numbers = glob.glob(f"{dir}/*")
                 for number in model_numbers:
                     number_model = number.split('/')[-1]
                     # In each of these we can pull config from the current file structure.
@@ -224,14 +225,13 @@ class data_source:
         #All checks out, now we can add the user
         self.users.append(user(username, generate_password_hash(password)))
 
-        f = open(self.user_file, 'w')
-        for myuser in self.users:
-            f.write(myuser.username + "," + myuser.password + "\n")
-        f.close()
+        with open(self.user_file, 'w') as f:
+            for myuser in self.users:
+                f.write(f"{myuser.username},{myuser.password}" + "\n")
         return True
 
     def change_model_status(self, captcha, status):
-        self.logger.info("Status is now: " + str(status))
+        self.logger.info(f"Status is now: {str(status)}")
         file_location = self.WORK + captcha['username'].replace(
             " ", "") + "/" + captcha['title'].replace(" ", "") + "/" + str(captcha['modelNumber'])
         update = self.get_update(file_location)
@@ -239,24 +239,22 @@ class data_source:
             return
 
         try:
-            f = open(file_location + "/model.txt", 'w')
-            f.write(str(update['hasTrained']) + "\n")
-            f.write(str(update['busyTraining']) + "\n")
-            f.write(str(update['hasModel']) + "\n")
-            f.write(str(update['modelActive']) + "\n")
-            f.write(str(update['modelPorts']) + "\n")
-            f.write(str(update['currentTrainingLevel']) + "\n")
-            f.write(str(update['image_width']) + "\n")
-            f.write(str(update['image_height']) + "\n")
-            f.write(str(update['last_step']) + "\n")
-            f.write(str(update['loss']) + "\n")
-            f.write(str(update['perplexity']) + "\n")
-            f.write(str(update['checkpoint']) + "\n")
-            f.write(str(update['modelName']) + "\n")
-            f.write(str(update['modelPath']) + "\n")
-            f.write(str(status) + "\n")
-            f.close()
-
+            with open(f"{file_location}/model.txt", 'w') as f:
+                f.write(str(update['hasTrained']) + "\n")
+                f.write(str(update['busyTraining']) + "\n")
+                f.write(str(update['hasModel']) + "\n")
+                f.write(str(update['modelActive']) + "\n")
+                f.write(str(update['modelPorts']) + "\n")
+                f.write(str(update['currentTrainingLevel']) + "\n")
+                f.write(str(update['image_width']) + "\n")
+                f.write(str(update['image_height']) + "\n")
+                f.write(str(update['last_step']) + "\n")
+                f.write(str(update['loss']) + "\n")
+                f.write(str(update['perplexity']) + "\n")
+                f.write(str(update['checkpoint']) + "\n")
+                f.write(str(update['modelName']) + "\n")
+                f.write(str(update['modelPath']) + "\n")
+                f.write(str(status) + "\n")
         except:
             pass
 
@@ -285,7 +283,7 @@ class data_source:
     def get_update(self, folder):
         update = {}
         try:
-            f = open(folder + "/model.txt")
+            f = open(f"{folder}/model.txt")
             lines = f.readlines()
             update['hasTrained'] = ast.literal_eval(lines[0].replace("\n", ""))
             update['busyTraining'] = ast.literal_eval(
@@ -318,8 +316,7 @@ class data_source:
     def get_process_update(self, captcha):
         file_location = self.WORK + captcha['username'].replace(
             " ", "") + "/" + captcha['title'].replace(" ", "") + "/" + str(captcha['modelNumber'])
-        update = self.get_update(file_location)
-        return update
+        return self.get_update(file_location)
 
     def update_captcha(self, captcha):
         file_location = self.WORK + captcha['username'].replace(
@@ -334,7 +331,7 @@ class data_source:
         return captcha
 
     def update_all_captchas(self):
-        for x in range(0, len(self.captchas)):
+        for x in range(len(self.captchas)):
             self.captchas[x] = self.update_captcha(self.captchas[x])
 
     def get_results(self, captcha):
@@ -349,30 +346,26 @@ class data_source:
             if (line.find("Step") != -1):
                 temp = (line.replace('\n', '').split(',')[-1].split('%'))
                 accuracy = temp[1]
-                answer = temp[2]
                 if float(accuracy) == 100.0:
                     correct += 1
                 else:
+                    answer = temp[2]
                     wrongs.append(answer)
                 count += 1
 
-        final_results = {
+        return {
             'correct': correct,
             'totalPredictions': count,
-            'accuracy': str(correct / count * 100) + "%",
-            'wrong_answers': str(wrongs)
+            'accuracy': f"{str(correct / count * 100)}%",
+            'wrong_answers': str(wrongs),
         }
-        return final_results
 
 
 class GetResultsAPI(Resource):
 
     def validate_user(self, captcha):
         user = self.auth_source.get_username()
-        if captcha['username'] == user:
-            return True
-        else:
-            return False
+        return captcha['username'] == user
 
     def __init__(self, **kwargs):
         self.data_source = kwargs['source']
@@ -388,7 +381,7 @@ class GetResultsAPI(Resource):
         self.data_source.update_all_captchas()
         captcha = [
             captcha for captcha in self.data_source.captchas if captcha['dataToken'] == dataToken]
-        if len(captcha) == 0:
+        if not captcha:
             # return make_response(jsonify({'message': 'Unauthorized access'}), 403)
             abort(404)
         if not self.validate_user(captcha[0]):
@@ -411,25 +404,24 @@ class CaptchaListAPI(Resource):
     def get(self):
         if (not self.auth_source.get_and_verify()):
             return make_response(jsonify({'message': 'Unauthorized access'}), 403)
-        # Build the captchas for the user
-        user_captchas = []
         self.data_source.update_all_captchas()
         username = self.auth_source.get_username()
 
-        for captcha in self.data_source.captchas:
-            if captcha['username'] == username:
-                user_captchas.append(captcha)
+        user_captchas = [
+            captcha
+            for captcha in self.data_source.captchas
+            if captcha['username'] == username
+        ]
+
         return {'captchas': [marshal(captcha, self.data_source.captcha_fields) for captcha in user_captchas]}
 
     def build_filename(self, title, username):
-        count = 1
-        for captcha in self.data_source.captchas:
-            if captcha['username'] == username:
-                if captcha['title'] == title.replace(" ", ""):
-                    count += 1
-
         # Count now keeps the current number for the file
-        return count
+        return 1 + sum(
+            captcha['username'] == username
+            and captcha['title'] == title.replace(" ", "")
+            for captcha in self.data_source.captchas
+        )
 
     def post(self):
         if (not self.auth_source.get_and_verify()):
@@ -442,12 +434,11 @@ class CaptchaListAPI(Resource):
         posted_file = request.files['document'].read()
         count = self.build_filename(posted_data['title'], self.auth_source.get_username())  # auth.username())
         filename = self.data_source.FILE_DROP_LOCATION + self.auth_source.get_username().replace(" ", "") + "_" + posted_data['title'].replace(" ", "") + "_" + str(count) + ".zip"
-        tempFile = open(filename, 'wb')
-        tempFile.write(posted_file)
-        tempFile.close()
+        with open(filename, 'wb') as tempFile:
+            tempFile.write(posted_file)
         uid = str(uuid.uuid1())
         id_str = self.data_source.captchas[-1]['id'] + \
-            1 if len(self.data_source.captchas) > 0 else 1
+                1 if len(self.data_source.captchas) > 0 else 1
         captcha = {
             'id': id_str,
             'title': posted_data['title'],
@@ -466,10 +457,7 @@ class ExportAPI(Resource):
 
     def validate_user(self, captcha):
         user = self.auth_source.get_username()
-        if captcha['username'] == user:
-            return True
-        else:
-            return False
+        return captcha['username'] == user
 
     def __init__(self, **kwargs):
         self.data_source = kwargs['source']
@@ -485,7 +473,7 @@ class ExportAPI(Resource):
         self.data_source.update_all_captchas()
         captcha = [
             captcha for captcha in self.data_source.captchas if captcha['dataToken'] == dataToken]
-        if len(captcha) == 0:
+        if not captcha:
             abort(404)
         if not self.validate_user(captcha[0]):
             abort(403)
@@ -495,7 +483,7 @@ class ExportAPI(Resource):
             " ", "") + "/" + captcha[0]['title'].replace(" ", "") + "/" + str(captcha[0]['modelNumber']) + "/exported-model"
         shutil.make_archive(file_location, 'zip', file_location)
 
-        local_file_to_send = file_location + ".zip"
+        local_file_to_send = f"{file_location}.zip"
         if not os.path.isabs(local_file_to_send):
             self.data_source.logger.warning("The path is not an abs path")
             if (local_file_to_send[0] == '.'):
@@ -511,10 +499,7 @@ class GetProgressAPI(Resource):
 
     def validate_user(self, captcha):
         user = self.auth_source.get_username()
-        if captcha['username'] == user:
-            return True
-        else:
-            return False
+        return captcha['username'] == user
 
     def __init__(self, **kwargs):
         self.data_source = kwargs['source']
@@ -530,7 +515,7 @@ class GetProgressAPI(Resource):
         self.data_source.update_all_captchas()
         captcha = [
             captcha for captcha in self.data_source.captchas if captcha['dataToken'] == dataToken]
-        if len(captcha) == 0:
+        if not captcha:
             abort(404)
         if not self.validate_user(captcha[0]):
             abort(403)
@@ -560,10 +545,7 @@ class ToggleModelAPI(Resource):
 
     def validate_user(self, captcha):
         user = self.auth_source.get_username()
-        if captcha['username'] == user:
-            return True
-        else:
-            return False
+        return captcha['username'] == user
 
     def __init__(self, **kwargs):
         self.data_source = kwargs['source']
@@ -581,7 +563,7 @@ class ToggleModelAPI(Resource):
 
         captcha = [
             captcha for captcha in self.data_source.captchas if captcha['dataToken'] == args['dataToken']]
-        if len(captcha) == 0:
+        if not captcha:
             abort(404)
         if not self.validate_user(captcha[0]):
             abort(403)
@@ -595,10 +577,7 @@ class SolveCaptchaAPI(Resource):
 
     def validate_user(self, captcha):
         user = self.auth_source.get_username()
-        if captcha['username'] == user:
-            return True
-        else:
-            return False
+        return captcha['username'] == user
 
     def __init__(self, **kwargs):
         self.data_source = kwargs['source']
@@ -616,7 +595,7 @@ class SolveCaptchaAPI(Resource):
 
         captcha = [
             captcha for captcha in self.data_source.captchas if captcha['dataToken'] == args['dataToken']]
-        if len(captcha) == 0:
+        if not captcha:
             abort(404)
         if not self.validate_user(captcha[0]):
             abort(403)
@@ -632,10 +611,7 @@ class CaptchaAPI(Resource):
 
     def validate_user(self, captcha):
         user = self.auth_source.get_username()
-        if captcha['username'] == user:
-            return True
-        else:
-            return False
+        return captcha['username'] == user
 
     def __init__(self, **kwargs):
         self.data_source = kwargs['source']
@@ -651,7 +627,7 @@ class CaptchaAPI(Resource):
         self.data_source.update_all_captchas()
         captcha = [
             captcha for captcha in self.data_source.captchas if captcha['id'] == id]
-        if len(captcha) == 0:
+        if not captcha:
             abort(404)
         if not self.validate_user(captcha[0]):
             abort(403)
@@ -662,7 +638,7 @@ class CaptchaAPI(Resource):
             return make_response(jsonify({'message': 'Unauthorized access'}), 403)
         captcha = [
             captcha for captcha in self.data_source.captchas if captcha['id'] == id]
-        if len(captcha) == 0:
+        if not captcha:
             abort(404)
         if not self.validate_user(captcha[0]):
             abort(403)
@@ -678,7 +654,7 @@ class CaptchaAPI(Resource):
             return make_response(jsonify({'message': 'Unauthorized access'}), 403)
         captcha = [
             captcha for captcha in self.data_source.captcas if captcha['id'] == id]
-        if len(captcha) == 0:
+        if not captcha:
             abort(404)
         if not self.validate_user(captcha[0]):
             abort(403)
@@ -726,10 +702,7 @@ class GenerateTokenAPI(Resource):
 
     def validate_user(self, captcha):
         user = self.auth_source.get_username()
-        if captcha['username'] == user:
-            return True
-        else:
-            return False
+        return captcha['username'] == user
 
     def __init__(self, **kwargs):
         self.data_source = kwargs['source']
@@ -749,8 +722,7 @@ class GenerateTokenAPI(Resource):
                 count = len(user.tokens)
                 if count >= self.data_source.max_tokens:
                     return make_response(jsonify({'token': '', 'message': 'maximum amount of tokens generated'}), 200)
-                lst = [random.choice(string.ascii_letters + string.digits)
-                       for n in range(128)]
+                lst = [random.choice(string.ascii_letters + string.digits) for _ in range(128)]
                 str_ = "".join(lst)
                 user.tokens[uuid.uuid1()] = [str_, time.time()]
                 return make_response(jsonify({'message': 'success', 'token': str_}), 200)

@@ -57,7 +57,7 @@ def label_generator(args):
 
 def label(args):
     logger = logging.getLogger("Captcha22 Label Scripts")
-    if args.script == None:
+    if args.script is None:
         logger.warning("A script has to be provided")
         raise argparse.ArgumentTypeError("script has to be provided")
 

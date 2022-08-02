@@ -9,7 +9,7 @@ try:
     sites = site.getsitepackages()
 
     for site_path in sites:
-        sys.path.append(site_path + "/captcha22")
+        sys.path.append(f"{site_path}/captcha22")
 except:
     pass
 

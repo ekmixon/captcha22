@@ -25,18 +25,18 @@ class EntryWindow(tkinter.Frame):
 
         self.read_files(self.read_dir)
         if len(self.files) == 0:
-            self.logger.info("No " + self.file_type + " files found")
+            self.logger.info(f"No {self.file_type} files found")
             sys.exit(2)
         self.index = -1
         self.create_gui()
         self.update_image()
 
     def read_files(self, read_dir):
-        self.files = []
-        for file in scandir(read_dir):
-            if (file.is_file and path.splitext(file.name)[1] == "." + self.file_type):
-                self.files.append(path.normpath(
-                    path.join(read_dir, file.name)))
+        self.files = [
+            path.normpath(path.join(read_dir, file.name))
+            for file in scandir(read_dir)
+            if file.is_file and path.splitext(file.name)[1] == f".{self.file_type}"
+        ]
 
     def close(self, event=None):
         self.master.destroy()
@@ -60,7 +60,7 @@ class EntryWindow(tkinter.Frame):
         return True
 
     def get_next(self, event=None):
-        entry_value = self.entry.get() + "." + self.file_type
+        entry_value = f"{self.entry.get()}.{self.file_type}"
         rename(self.files[self.index], path.normpath(
             path.join(self.write_dir, entry_value)))
         self.files[self.index] = entry_value
